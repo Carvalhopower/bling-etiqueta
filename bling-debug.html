@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Diagnóstico Bling API</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+    h2 { color: white; font-family: sans-serif; }
+    input { width: 500px; padding: 8px; font-family: monospace; font-size: 13px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; }
+    button { padding: 8px 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 8px; font-size: 13px; }
+    pre { background: #111; padding: 16px; border-radius: 6px; overflow-x: auto; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+    .ok  { color: #00ff00; }
+    .err { color: #ff4444; }
+    .section { margin-top: 20px; }
+    label { color: #aaa; font-family: sans-serif; font-size: 13px; display: block; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <h2>🔍 Diagnóstico API Bling v3</h2>
+  <label>Access Token:</label>
+  <input type="password" id="token" placeholder="Cole seu access token aqui" />
+  <button onclick="testar()">▶ Testar</button>
+
+  <div class="section">
+    <label>Resultado — GET /canaisdevenda:</label>
+    <pre id="out1">aguardando...</pre>
+  </div>
+  <div class="section">
+    <label>Resultado — GET /produtos (primeiros 3):</label>
+    <pre id="out2">aguardando...</pre>
+  </div>
+
+  <script>
+    async function testar() {
+      const token = document.getElementById('token').value.trim();
+      if (!token) { alert('Cole o token primeiro'); return; }
+
+      const headers = {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/json'
+      };
+
+      // Testa canais de venda
+      const out1 = document.getElementById('out1');
+      out1.textContent = 'buscando...';
+      try {
+        const r = await fetch('https://api.bling.com.br/Api/v3/canaisdevenda?pagina=1&limite=50', { headers });
+        const d = await r.json();
+        out1.className = r.ok ? 'ok' : 'err';
+        out1.textContent = 'HTTP ' + r.status + '\n\n' + JSON.stringify(d, null, 2);
+      } catch(e) {
+        out1.className = 'err';
+        out1.textContent = 'ERRO: ' + e.message;
+      }
+
+      // Testa produtos
+      const out2 = document.getElementById('out2');
+      out2.textContent = 'buscando...';
+      try {
+        const r2 = await fetch('https://api.bling.com.br/Api/v3/produtos?pagina=1&limite=3', { headers });
+        const d2 = await r2.json();
+        out2.className = r2.ok ? 'ok' : 'err';
+        out2.textContent = 'HTTP ' + r2.status + '\n\n' + JSON.stringify(d2, null, 2);
+      } catch(e) {
+        out2.className = 'err';
+        out2.textContent = 'ERRO: ' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>
