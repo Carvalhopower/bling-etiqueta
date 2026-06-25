@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Autenticação Bling</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      width: 100%;
+      max-width: 520px;
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #0066cc, #0052a3);
+      color: white;
+      padding: 24px 28px;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .header p  { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+    .body { padding: 24px 28px; }
+    h3 { font-size: 13px; font-weight: 700; color: #1a202c; margin-bottom: 8px; }
+    p  { font-size: 12px; color: #718096; line-height: 1.6; margin-bottom: 10px; }
+    .uri-box {
+      background: #f7fafc;
+      border: 2px solid #0066cc;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0052a3;
+      word-break: break-all;
+      margin-bottom: 6px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: #0066cc;
+      color: white;
+      transition: background 0.2s;
+      margin-top: 10px;
+      text-align: center;
+    }
+    .btn:hover { background: #0052a3; }
+    .btn-secondary {
+      background: #edf2f7;
+      color: #2d3748;
+      margin-top: 8px;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+    .alert {
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+    .alert-warn { background: #fffbeb; border: 1px solid #f6c90e; color: #744210; }
+    .alert-ok   { background: #c6f6d5; border: 1px solid #68d391; color: #276749; font-weight: 600; }
+    .alert-err  { background: #fed7d7; border: 1px solid #fc8181; color: #9b2c2c; }
+    .token-value {
+      font-family: monospace;
+      font-size: 11px;
+      background: white;
+      border: 1px solid #cbd5e0;
+      border-radius: 5px;
+      padding: 10px;
+      word-break: break-all;
+      line-height: 1.6;
+      margin: 8px 0;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+    /* Etapas */
+    .step { display: none; }
+    .step.active { display: block; }
+    .step-indicator {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #cbd5e0;
+    }
+    .dot.active { background: #0066cc; }
+    .dot.done   { background: #38a169; }
+
+    /* Caixa de code manual */
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+      min-height: 60px;
+      margin-top: 6px;
+    }
+    textarea:focus { outline: none; border-color: #0066cc; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>🔑 Autenticação Bling</h1>
+    <p>Gere seu Access Token para a Extensão de Etiquetas</p>
+  </div>
+  <div class="body">
+
+    <div class="step-indicator">
+      <div class="dot active" id="dot1"></div>
+      <div class="dot" id="dot2"></div>
+      <div class="dot" id="dot3"></div>
+    </div>
+
+    <!-- ETAPA 1: URI e botão de autorizar -->
+    <div class="step active" id="etapa1">
+      <h3>📋 Passo 1 — Cadastre este URI no Bling</h3>
+      <div class="uri-box" id="showUri">carregando...</div>
+      <p>Vá em <strong>Bling → Área do Integrador → seu aplicativo → Link de Redirecionamento</strong>, cole o URI acima e salve.</p>
+
+      <div class="divider"></div>
+
+      <h3>🔗 Passo 2 — Clique para autorizar</h3>
+      <p>Após salvar o URI no Bling, clique abaixo. O Bling vai abrir numa nova aba.</p>
+      <button class="btn" id="btnAuth">🔗 Abrir Bling para Autorizar</button>
+
+      <div class="divider"></div>
+
+      <h3>📥 Passo 3 — Cole o código de retorno</h3>
+      <p>Após autorizar no Bling, ele vai te redirecionar para uma página com um endereço assim na barra do Chrome:<br>
+      <code style="font-size:11px;background:#f7fafc;padding:2px 5px;border-radius:3px">...?code=<strong>XXXXXXXX</strong>&state=...</code><br><br>
+      Copie o valor que aparece após <strong>?code=</strong> até o <strong>&state</strong> e cole abaixo:</p>
+      <textarea id="codeInput" placeholder="Cole aqui o código (o valor após ?code= na URL)"></textarea>
+      <button class="btn" id="btnTrocar">✅ Gerar Token</button>
+      <div id="statusArea"></div>
+    </div>
+
+    <!-- ETAPA 2: Token gerado -->
+    <div class="step" id="etapa2">
+      <div class="alert alert-ok">🎉 Token gerado com sucesso!</div>
+      <p style="margin-top:12px">Copie o token abaixo e cole na extensão do Chrome:</p>
+      <div class="token-value" id="tokenValue"></div>
+      <button class="btn" id="btnCopiar">📋 Copiar Token</button>
+      <span id="copyOk" style="font-size:11px;color:#38a169;display:none;margin-left:8px">✅ Copiado!</span>
+      <div class="alert alert-warn" style="margin-top:14px">
+        ⚠️ Este token expira em ~6 horas. Quando a extensão parar de funcionar, volte aqui e repita o processo.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const CLIENT_ID     = '1d8e522c0457ab041558b83dd2c737f5acd3f83e';
+  const CLIENT_SECRET = '360eba6b39bc54b0d80247b478d7d1020e15facfeb5547b7f31e29505082';
+  const REDIRECT_URI  = window.location.origin + window.location.pathname;
+
+  document.getElementById('showUri').textContent = REDIRECT_URI;
+
+  // Botão abrir Bling numa nova aba
+  document.getElementById('btnAuth').addEventListener('click', () => {
+    const url = new URL('https://www.bling.com.br/Api/v3/oauth/authorize');
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('client_id', CLIENT_ID);
+    url.searchParams.set('redirect_uri', REDIRECT_URI);
+    url.searchParams.set('state', 'etiqueta');
+    window.open(url.toString(), '_blank');
+  });
+
+  // Botão trocar code por token via proxy CORS público
+  document.getElementById('btnTrocar').addEventListener('click', async () => {
+    const raw  = document.getElementById('codeInput').value.trim();
+    // Aceita tanto só o code quanto a URL inteira
+    let code = raw;
+    if (raw.includes('code=')) {
+      const m = raw.match(/[?&]code=([^&]+)/);
+      if (m) code = m[1];
+    }
+
+    if (!code) {
+      mostrarStatus('⚠️ Cole o código antes de continuar.', 'warn');
+      return;
+    }
+
+    mostrarStatus('⏳ Gerando token...', 'warn');
+    document.getElementById('btnTrocar').disabled = true;
+
+    const credentials = btoa(CLIENT_ID + ':' + CLIENT_SECRET);
+    const body = new URLSearchParams({
+      grant_type:   'authorization_code',
+      code,
+      redirect_uri: REDIRECT_URI
+    });
+
+    // Tenta direto primeiro, depois via proxy CORS
+    let data = null;
+    let ok   = false;
+
+    // Tentativa 1: direto
+    try {
+      const res = await fetch('https://www.bling.com.br/Api/v3/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + credentials,
+          'Content-Type':  'application/x-www-form-urlencoded',
+          'Accept':        'application/json'
+        },
+        body
+      });
+      data = await res.json();
+      if (data.access_token) ok = true;
+    } catch (_) {}
+
+    // Tentativa 2: via proxy CORS público
+    if (!ok) {
+      try {
+        const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://www.bling.com.br/Api/v3/oauth/token');
+        const res2 = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + credentials,
+            'Content-Type':  'application/x-www-form-urlencoded',
+            'Accept':        'application/json'
+          },
+          body
+        });
+        data = await res2.json();
+        if (data.access_token) ok = true;
+      } catch (_) {}
+    }
+
+    if (ok && data.access_token) {
+      document.getElementById('tokenValue').textContent = data.access_token;
+      document.getElementById('etapa1').classList.remove('active');
+      document.getElementById('etapa2').classList.add('active');
+      document.getElementById('dot1').classList.remove('active');
+      document.getElementById('dot1').classList.add('done');
+      document.getElementById('dot2').classList.add('done');
+      document.getElementById('dot3').classList.add('active');
+      localStorage.setItem('bling_token', data.access_token);
+    } else {
+      const msg = data?.error_description || data?.error || 'Erro desconhecido';
+      mostrarStatus('❌ ' + msg + ' — O código pode ter expirado. Clique em "Abrir Bling" novamente.', 'err');
+      document.getElementById('btnTrocar').disabled = false;
+    }
+  });
+
+  document.getElementById('btnCopiar').addEventListener('click', () => {
+    const t = document.getElementById('tokenValue').textContent;
+    navigator.clipboard.writeText(t).then(() => {
+      const ok = document.getElementById('copyOk');
+      ok.style.display = 'inline';
+      setTimeout(() => ok.style.display = 'none', 3000);
+    });
+  });
+
+  function mostrarStatus(msg, tipo) {
+    document.getElementById('statusArea').innerHTML =
+      '<div class="alert alert-' + tipo + '">' + msg + '</div>';
+  }
+</script>
+</body>
+</html>
